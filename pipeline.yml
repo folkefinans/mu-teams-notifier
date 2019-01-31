@@ -1,0 +1,133 @@
+Parameters:
+  TeamsLambdaRole:
+    Description: Teams lambda Role Arn
+    Type: String
+
+Resources:
+  TeamsNotifierLogGroup:
+    Type: 'AWS::Logs::LogGroup'
+    Properties:
+      LogGroupName: /aws/lambda/teams-notifier
+
+  TeamsNotifierLambdaFunction:
+    Type: 'AWS::Lambda::Function'
+    Properties:
+      Code:
+        ZipFile: >
+          'use strict';
+          const https = require('https');
+          const AWS = require('aws-sdk');
+          module.exports.default = (event, context, callback) => {
+              console.log('message JSON', JSON.parse(event.Records[0].Sns.Message));
+              const message = JSON.parse(event.Records[0].Sns.Message);
+              console.log('state', message.detail.state);
+              const state = message.detail.state;
+
+              let codepipeline = new AWS.CodePipeline();
+              let params = {pipelineExecutionId: message.detail['execution-id'], pipelineName: message.detail.pipeline};
+
+              codepipeline.getPipelineExecution(params).promise().then((result) => {
+                  console.log(result.pipelineExecution);
+
+                  let artifactRevision = result.pipelineExecution.artifactRevisions[0];
+                  let theme = {
+                      "STARTED": '0072C6',
+                      "SUCCEEDED": '00c648',
+                      "FAILED": 'c60300',
+                  };
+                  let template = {
+                      "@context": "https://schema.org/extensions",
+                      "@type": "MessageCard",
+                      themeColor: theme[state],
+                      title: `Pipeline '${message.detail.pipeline}' has ${state.toLowerCase()}`,
+                      text: `A build on pipeline '${message.detail.pipeline}', with changes: '${artifactRevision.revisionSummary}' has ${state.toLowerCase()}`,
+                      potentialAction: [
+                          {
+                              "@type": "OpenUri",
+                              name: "View Pipeline",
+                              targets: [
+                                  {
+                                      os: "default",
+                                      uri: `https://console.aws.amazon.com/codepipeline/home?region=eu-west-1#/view/${message.detail.pipeline}`
+                                  }
+                              ]
+                          },
+                          {
+                              "@type": "OpenUri",
+                              name: "View Changes",
+                              targets: [
+                                  {
+                                      os: "default",
+                                      uri: artifactRevision.revisionUrl
+                                  }
+                              ]
+                          }
+                      ]
+                  };
+
+                  let postData = JSON.stringify(template);
+                  console.log(postData);
+                  let options = {
+                      hostname: 'outlook.office.com',
+                      port: '443',
+                      path: process.env.TEAMS_HOOK_PATH,
+                      method: 'POST',
+                      headers: {"Content-Type":"application/json", 'Content-Length': postData.length}
+                  };
+                  console.log(options);
+                  let request = https.request(options, (res) => {
+                      console.log('statusCode:', res.statusCode);
+                      console.log('headers:', res.headers);
+                      res.on('end', () => {
+                          callback(null, 'notice sent')
+                      })
+                  }).on('error', (e) => {
+                      console.error(e);
+                      callback('error sending webhook');
+                  });
+                  request.write(postData);
+                  request.end();
+
+              }).catch((err) => {
+                  console.log('error');
+                  console.log(err, err.stack);
+                  callback('error getting execution details');
+              })
+          };
+      FunctionName: teams-notifier
+      Handler: index.default
+      MemorySize: 1024
+      Role:
+        Fn::ImportValue:
+          TeamsLambdaRoleArn
+      Runtime: nodejs8.10
+      Timeout: 6
+      Environment:
+        Variables:
+          TEAMS_HOOK_PATH: '{{resolve:ssm:TEAMS_HOOK_PATH:1}}'
+    DependsOn:
+    - TeamsNotifierLogGroup
+
+  TeamsNotifierSNSSubscription:
+    Type: 'AWS::SNS::Subscription'
+    Properties:
+      TopicArn:
+        Ref: PipelineNotificationTopic
+      Protocol: lambda
+      Endpoint:
+        Fn::GetAtt:
+        - TeamsNotifierLambdaFunction
+        - Arn
+
+  TeamsSNSLambdaPermission:
+    Type: 'AWS::Lambda::Permission'
+    Properties:
+      FunctionName:
+        Fn::GetAtt:
+        - TeamsNotifierLambdaFunction
+        - Arn
+      Action: 'lambda:InvokeFunction'
+      Principal:
+        Fn::Sub: sns.${AWS::URLSuffix}
+      SourceArn:
+        Ref: PipelineNotificationTopic

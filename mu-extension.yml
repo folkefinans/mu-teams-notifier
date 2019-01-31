@@ -1,0 +1,4 @@
+name: teams-notifier
+version: '1.0'
+
+templateUpdateMode: merge

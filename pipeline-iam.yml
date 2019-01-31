@@ -1,0 +1,62 @@
+Resources:
+  TeamsLambdaLoggingPolicy:
+    Type: AWS::IAM::ManagedPolicy
+    Properties:
+      Description: "Policy for allowing teams lambdas to log"
+      PolicyDocument:
+        Version: 2012-10-17
+        Statement:
+        - Effect: Allow
+          Action:
+          - 'logs:CreateLogStream'
+          Resource:
+          - Fn::Sub: arn:${AWS::Partition}:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/lambda/teams-*:*
+        - Effect: Allow
+          Action:
+          - 'logs:PutLogEvents'
+          Resource:
+          - Fn::Sub: arn:${AWS::Partition}:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/lambda/teams-*:*:*
+
+  TeamsCodePipelinePolicy:
+    Type: AWS::IAM::ManagedPolicy
+    Properties:
+      Description: "Policy for allowing teams lambdas to query pipeline"
+      PolicyDocument:
+        Version: 2012-10-17
+        Statement:
+        - Effect: Allow
+          Action:
+          - 'codepipeline:GetPipelineExecution'
+          Resource:
+          - Fn::Sub: arn:${AWS::Partition}:codepipeline:${AWS::Region}:${AWS::AccountId}:${Namespace}-${ServiceName}
+
+  TeamsLambdaRole:
+    Type: 'AWS::IAM::Role'
+    DependsOn:
+    - TeamsLambdaLoggingPolicy
+    - TeamsCodePipelinePolicy
+    Properties:
+      ManagedPolicyArns:
+      - Ref: TeamsLambdaLoggingPolicy
+      - Ref: TeamsCodePipelinePolicy
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+        - Effect: Allow
+          Principal:
+            Service:
+            - lambda.amazonaws.com
+          Action:
+          - 'sts:AssumeRole'
+      Path: /
+      RoleName: teams-lambda-role
+
+Outputs:
+  TeamsLambdaRole:
+    Description: Teams Lambda Role Arn
+    Value:
+      Fn::GetAtt:
+      - TeamsLambdaRole
+      - Arn
+    Export:
+      Name: TeamsLambdaRoleArn
