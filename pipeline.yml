@@ -7,7 +7,8 @@ Resources:
   TeamsNotifierLogGroup:
     Type: 'AWS::Logs::LogGroup'
     Properties:
-      LogGroupName: /aws/lambda/teams-notifier
+      LogGroupName:
+        Fn::Sub: /aws/lambda/${Namespace}-${ServiceName}-teams-notifier
 
   TeamsNotifierLambdaFunction:
     Type: 'AWS::Lambda::Function'
@@ -94,7 +95,8 @@ Resources:
                   callback('error getting execution details');
               })
           };
-      FunctionName: teams-notifier
+      FunctionName:
+        Fn::Sub: ${Namespace}-${ServiceName}-teams-notifier
       Handler: index.default
       MemorySize: 1024
       Role:

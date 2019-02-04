@@ -1,0 +1,26 @@
+Resources:
+  TeamsLambdaLoggingPolicy:
+    Type: AWS::IAM::ManagedPolicy
+    Properties:
+      Description: "Policy for allowing teams lambdas to log"
+      PolicyDocument:
+        Version: 2012-10-17
+        Statement:
+        - Effect: Allow
+          Action:
+          - 'logs:CreateLogStream'
+          Resource:
+          - Fn::Sub: arn:${AWS::Partition}:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/lambda/teams-*:*
+        - Effect: Allow
+          Action:
+          - 'logs:PutLogEvents'
+          Resource:
+          - Fn::Sub: arn:${AWS::Partition}:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/lambda/teams-*:*:*
+
+Outputs:
+  TeamsLambdaLoggingPolicy:
+    Description: Teams lambda logging Policy
+    Value:
+      Ref: TeamsLambdaLoggingPolicy
+    Export:
+      Name: TeamsLambdaLoggingPolicy

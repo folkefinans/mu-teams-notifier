@@ -1,22 +1,4 @@
 Resources:
-  TeamsLambdaLoggingPolicy:
-    Type: AWS::IAM::ManagedPolicy
-    Properties:
-      Description: "Policy for allowing teams lambdas to log"
-      PolicyDocument:
-        Version: 2012-10-17
-        Statement:
-        - Effect: Allow
-          Action:
-          - 'logs:CreateLogStream'
-          Resource:
-          - Fn::Sub: arn:${AWS::Partition}:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/lambda/teams-*:*
-        - Effect: Allow
-          Action:
-          - 'logs:PutLogEvents'
-          Resource:
-          - Fn::Sub: arn:${AWS::Partition}:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/lambda/teams-*:*:*
-
   TeamsCodePipelinePolicy:
     Type: AWS::IAM::ManagedPolicy
     Properties:
@@ -37,7 +19,7 @@ Resources:
     - TeamsCodePipelinePolicy
     Properties:
       ManagedPolicyArns:
-      - Ref: TeamsLambdaLoggingPolicy
+      - Fn::ImportValue: TeamsLambdaLoggingPolicy
       - Ref: TeamsCodePipelinePolicy
       AssumeRolePolicyDocument:
         Version: 2012-10-17
@@ -49,7 +31,8 @@ Resources:
           Action:
           - 'sts:AssumeRole'
       Path: /
-      RoleName: teams-lambda-role
+      RoleName:
+        Fn::Sub: ${Namespace}-${ServiceName}-teams-lambda-role
 
 Outputs:
   TeamsLambdaRole:
