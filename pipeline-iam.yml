@@ -15,7 +15,6 @@ Resources:
   TeamsLambdaRole:
     Type: 'AWS::IAM::Role'
     DependsOn:
-    - TeamsLambdaLoggingPolicy
     - TeamsCodePipelinePolicy
     Properties:
       ManagedPolicyArns:
