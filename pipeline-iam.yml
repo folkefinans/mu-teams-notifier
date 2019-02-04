@@ -40,3 +40,5 @@ Outputs:
       Fn::GetAtt:
       - TeamsLambdaRole
       - Arn
+    Export:
+      Name: TeamsLambdaRoleArn
