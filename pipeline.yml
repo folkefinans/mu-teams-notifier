@@ -96,7 +96,7 @@ Resources:
               })
           };
       FunctionName:
-        Fn::Sub: ${Namespace}-${ServiceName}-teams-notifier
+        Fn::Sub: teams-notifier-${Namespace}-${ServiceName}
       Handler: index.default
       MemorySize: 1024
       Role:
