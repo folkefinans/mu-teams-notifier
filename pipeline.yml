@@ -8,7 +8,7 @@ Resources:
     Type: 'AWS::Logs::LogGroup'
     Properties:
       LogGroupName:
-        Fn::Sub: /aws/lambda/${Namespace}-${ServiceName}-teams-notifier
+        Fn::Sub: /aws/lambda/teams-notifier-${Namespace}-${ServiceName}
 
   TeamsNotifierLambdaFunction:
     Type: 'AWS::Lambda::Function'
