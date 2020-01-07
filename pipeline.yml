@@ -101,7 +101,7 @@ Resources:
       MemorySize: 1024
       Role:
         Ref: TeamsLambdaRole
-      Runtime: nodejs8.10
+      Runtime: nodejs12.x
       Timeout: 6
       Environment:
         Variables:
